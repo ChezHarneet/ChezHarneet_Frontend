@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/grammar/layout,_N_T_/grammar/page,_N_T_/grammar"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/7a3798aca349dc67abf95725a749689b5441dfa80bfde99e09ff34bcbf24817f/$/grammar",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/grammar/page"
+    },
+    "isFallback": false
+  }
+}

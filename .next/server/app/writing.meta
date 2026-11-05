@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/writing/layout,_N_T_/writing/page,_N_T_/writing"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/1134225e4748803ecdd5893ac629bff9c248a010ac3242f8dc168af99b69f5e0/$/writing",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/writing/page"
+    },
+    "isFallback": false
+  }
+}

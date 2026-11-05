@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/practice/layout,_N_T_/practice/page,_N_T_/practice"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/c492a53b888fa88c94ae06249e87462004000cf7e84b861f171ae9ebb1141d67/$/practice",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/practice/page"
+    },
+    "isFallback": false
+  }
+}

@@ -446,6 +446,8 @@ video {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}.block{
+  display: block;
 }.table{
   display: table;
 }.filter{
@@ -624,4 +626,35 @@ video {
 @media(max-width:1050px){.oral-task3-topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.oral-task3-detail-layout{grid-template-columns:minmax(0,1fr) 230px}}
 @media(max-width:760px){.oral-task3-list-toolbar{grid-template-columns:1fr 1fr}.oral-task3-search{grid-column:1/-1}.oral-task3-count{grid-column:1/-1;justify-self:start}.oral-task3-topic-grid{grid-template-columns:1fr}.oral-task3-detail-layout{grid-template-columns:1fr}.oral-task3-detail-heading{flex-wrap:wrap;padding:15px}.oral-task3-detail-heading>div{flex-basis:calc(100% - 70px)}.oral-task3-detail-heading h2{font-size:18px}.oral-task3-practice{flex:1}.oral-task3-pagination{align-items:flex-start;flex-direction:column}.oral-task3-detail-navigation>div button{font-size:0}.oral-task3-detail-navigation>div button svg{flex:0 0 auto}}
 @media(max-width:420px){.oral-task3-list-toolbar{grid-template-columns:1fr}.oral-task3-search,.oral-task3-count{grid-column:auto}.oral-task3-detail-navigation{align-items:flex-start}.oral-task3-detail-icon{flex-basis:44px;width:44px;height:44px}.oral-task3-meta{gap:5px}}
+
+.oral-task3-content-card{display:grid;gap:15px;padding:20px}
+.oral-task3-content-card h3{margin:0;font-size:16px}
+.oral-task3-content-section+.oral-task3-content-section{margin-top:0;padding-top:15px;border-top:1px solid #eef0f5}
+.oral-task3-content-section h4{margin:0 0 11px;color:#5265c9;font:700 11px Manrope,sans-serif}
+.oral-task3-content-flow{display:grid;gap:11px}
+.oral-task3-content-block{display:grid;gap:9px;padding:13px 15px;border:1px solid #e8ebf3;border-radius:11px;background:#fafbff}
+.oral-task3-content-block h4{margin:0;color:#5265c9;font:700 11px Manrope,sans-serif;letter-spacing:.035em}
+.oral-task3-content-entries{display:grid;gap:7px;min-width:0}
+.oral-task3-content-entries p{margin:0;color:#56637b;font-size:12px;line-height:1.75;white-space:pre-wrap}
+.oral-task3-content-point{display:grid;grid-template-columns:minmax(105px,155px) minmax(0,1fr);gap:12px;align-items:start;padding:8px 10px;border:1px solid #eceef6;border-radius:8px;background:#fff;color:#56637b;font-size:12px;line-height:1.6}
+.oral-task3-content-point b{color:#33415f;font-size:11px}
+.oral-task3-content-point span{min-width:0}
+.oral-task3-vocabulary-card{overflow:hidden;border:1px solid #e8ebf2;border-radius:12px;background:#fff}
+.oral-task3-vocabulary-heading{display:flex;align-items:center;gap:13px;padding:18px 20px}
+.oral-task3-vocabulary-heading>span{display:grid;flex:0 0 46px;place-items:center;width:46px;height:46px;border-radius:50%;background:#eef0ff;color:#5368db}
+.oral-task3-vocabulary-heading h3{margin:0;color:#202c48;font:750 19px/1.35 Manrope,sans-serif}
+.oral-task3-vocabulary-heading p{margin:3px 0 0;color:#758099;font-size:11px}
+.oral-task3-vocabulary-table-wrap{overflow:auto}
+.oral-task3-vocabulary-card table{width:100%;border-collapse:collapse;text-align:left}
+.oral-task3-vocabulary-card thead{background:#f0f1ff}
+.oral-task3-vocabulary-card th,.oral-task3-vocabulary-card td{padding:9px 14px;border-bottom:1px solid #e9ebf5;color:#35415c;font-size:12px;line-height:1.5}
+.oral-task3-vocabulary-card thead th{color:#273451;font-size:11px;font-weight:800}
+.oral-task3-vocabulary-card tbody th{width:42%;color:#202d49;font-weight:750}
+.oral-task3-vocabulary-card tbody tr:last-child th,.oral-task3-vocabulary-card tbody tr:last-child td{border-bottom:0}
+.oral-task3-vocabulary-card tbody tr:hover{background:#fafaff}
+.oral-task3-vocabulary-card tbody th small{display:block;margin-top:3px;color:#8791a5;font-size:10px;font-weight:500}
+.oral-task3-vocabulary-card footer{padding:12px 16px;border-top:1px solid #e9ebf5;color:#78839a;font-size:11px;font-weight:600}
+.oral-task3-learning-block{gap:12px;padding-top:16px}
+.oral-task3-vocabulary article,.oral-task3-grammar article{gap:6px;padding:13px;border-radius:10px;background:#fafbff}
+@media(max-width:600px){.oral-task3-content-card{padding:14px}.oral-task3-content-point{grid-template-columns:1fr;gap:3px;padding:9px}.oral-task3-vocabulary-heading{padding:15px}.oral-task3-vocabulary-card th,.oral-task3-vocabulary-card td{padding:9px 11px;font-size:11px}.oral-task3-vocabulary-card tbody th{width:50%}}
 

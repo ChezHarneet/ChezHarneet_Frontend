@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/auth/callback/page": "/auth/callback",
+  "/dashboard/page": "/dashboard",
+  "/grammar/page": "/grammar",
+  "/speaking/page": "/speaking",
+  "/pricing/page": "/pricing",
+  "/vocabulary/page": "/vocabulary",
+  "/page": "/",
+  "/writing/page": "/writing",
+  "/practice/page": "/practice",
+  "/admin/page": "/admin",
+  "/admin/[resource]/page": "/admin/[resource]"
+}

@@ -2,13 +2,13 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/auth/callback/page": "app/auth/callback/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/page": "app/page.js",
-  "/practice/page": "app/practice/page.js",
+  "/grammar/page": "app/grammar/page.js",
   "/speaking/page": "app/speaking/page.js",
   "/pricing/page": "app/pricing/page.js",
-  "/admin/[resource]/page": "app/admin/[resource]/page.js",
-  "/admin/page": "app/admin/page.js",
   "/vocabulary/page": "app/vocabulary/page.js",
-  "/grammar/page": "app/grammar/page.js",
-  "/writing/page": "app/writing/page.js"
+  "/page": "app/page.js",
+  "/writing/page": "app/writing/page.js",
+  "/practice/page": "app/practice/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/[resource]/page": "app/admin/[resource]/page.js"
 }

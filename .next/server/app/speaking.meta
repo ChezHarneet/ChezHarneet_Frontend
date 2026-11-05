@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/speaking/layout,_N_T_/speaking/page,_N_T_/speaking"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/565c3716d81538a67cf4f15dc3083044048935bfd38e7f9f1e21a17794e53415/$/speaking",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/speaking/page"
+    },
+    "isFallback": false
+  }
+}

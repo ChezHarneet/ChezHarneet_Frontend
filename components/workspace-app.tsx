@@ -173,6 +173,132 @@ function taskThreeVersionOrder(label: string) {
   return 5;
 }
 
+type TaskThreeContentEntry =
+  | { type: "paragraph"; content: string }
+  | { type: "point"; label: string | null; content: string };
+
+type TaskThreeContentBlock = {
+  heading: string | null;
+  entries: TaskThreeContentEntry[];
+};
+
+function isTaskThreeContentHeading(line: string) {
+  if (/^(introduction|paragraphe\s+\d+|conclusion|argument\s+[1-3]|expérience personnelle|enquête)$/i.test(line)) return true;
+  const letters = line.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+  return line.length <= 88 && letters.length >= 3 && letters === letters.toLocaleUpperCase("fr");
+}
+
+function normalizeTaskThreeHeading(heading: string) {
+  return heading.trim().toLocaleLowerCase("fr").replace(/^version\s+/, "").replace(/[.:]/g, "");
+}
+
+function taskThreeContentBlocks(content: string): TaskThreeContentBlock[] {
+  const blocks: TaskThreeContentBlock[] = [{ heading: null, entries: [] }];
+  let paragraph = "";
+
+  const flushParagraph = () => {
+    if (!paragraph) return;
+    blocks[blocks.length - 1].entries.push({ type: "paragraph", content: paragraph });
+    paragraph = "";
+  };
+
+  const contentWithMarkers = content
+    .replace(/(?<=[.!?])\s+(Introduction|Paragraphe\s+\d+|Conclusion|Argument\s+[1-3]|Expérience personnelle|Enquête)\b\s+/gi, "\n\n$1\n")
+    .replace(/(?<=[.!?])\s+([2-3])\.\s+(?=[A-ZÀ-ÖØ-Þ])/g, "\n$1. ");
+  for (const rawLine of contentWithMarkers.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      continue;
+    }
+
+    if (isTaskThreeContentHeading(line)) {
+      flushParagraph();
+      blocks.push({ heading: line, entries: [] });
+      continue;
+    }
+
+    const point = line.replace(/^[*•-]\s*/, "");
+    const arrowIndex = point.indexOf("→");
+    if (arrowIndex >= 0) {
+      flushParagraph();
+      blocks[blocks.length - 1].entries.push({
+        type: "point",
+        label: point.slice(0, arrowIndex).trim(),
+        content: point.slice(arrowIndex + 1).trim(),
+      });
+      continue;
+    }
+
+    if (point !== line) {
+      flushParagraph();
+      blocks[blocks.length - 1].entries.push({ type: "point", label: null, content: point });
+      continue;
+    }
+
+    const numberedPoint = line.match(/^([1-3])\.\s+(.+)$/);
+    if (numberedPoint) {
+      flushParagraph();
+      blocks[blocks.length - 1].entries.push({
+        type: "point",
+        label: `${numberedPoint[1]}.`,
+        content: numberedPoint[2],
+      });
+      continue;
+    }
+
+    paragraph = paragraph ? `${paragraph} ${line}` : line;
+  }
+
+  flushParagraph();
+  return blocks.filter((block) => block.heading || block.entries.length > 0);
+}
+
+function taskThreeVocabularyRows(
+  entries: SpeakingContentEssay["vocabulary"],
+  sections: SpeakingContentEssay["versions"][number]["sections"],
+) {
+  if (entries.length > 0) return entries;
+
+  const values = sections.flatMap((section) => section.content.split(/\r?\n/))
+    .flatMap((line) => line.split("\t"))
+    .map((value) => value.trim())
+    .filter((value) => value && !/^_+$/.test(value));
+  const headerIndex = values.findIndex((value) => value.toLocaleLowerCase("fr") === "français");
+  const content = values.slice(headerIndex >= 0 ? headerIndex + 1 : 0)
+    .filter((value) => !["english", "meaning"].includes(value.toLocaleLowerCase("fr")));
+
+  return Array.from({ length: Math.ceil(content.length / 2) }, (_, index) => ({
+    id: `version-vocabulary-${index}`,
+    frenchTerm: content[index * 2],
+    englishMeaning: content[index * 2 + 1] ?? null,
+    example: null,
+    sortOrder: index,
+  }));
+}
+
+function TaskThreeSectionContent({ content }: { content: string }) {
+  const blocks = taskThreeContentBlocks(content);
+
+  return (
+    <div className="oral-task3-content-flow">
+      {blocks.map((block, blockIndex) => (
+        <section className="oral-task3-content-block" key={`${block.heading ?? "content"}-${blockIndex}`}>
+          {block.heading && <h4>{block.heading}</h4>}
+          <div className="oral-task3-content-entries">
+            {block.entries.map((entry, entryIndex) => entry.type === "point" ? (
+              <div className="oral-task3-content-point" key={entryIndex}>
+                {entry.label && <b>{entry.label}</b>}
+                <span>{entry.content}</span>
+              </div>
+            ) : <p key={entryIndex}>{entry.content}</p>)}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function taskPresentation(format: string) {
   if (format.startsWith("WRITING")) return { icon: FileText, tone: "blue" };
   if (format.includes("INTERACTION")) return { icon: AudioLines, tone: "peach" };
@@ -326,6 +452,7 @@ const frenchUi: Record<string, string> = {
   "Task 1": "Tâche 1",
   "Task 2": "Tâche 2",
   "Task 3": "Tâche 3",
+  "Task 3 — Argumentation": "Tâche 3 — Argumentation",
   "Presentation": "Présentation",
   "Oral interaction": "Interaction orale",
   "Argument": "Argumentation",
@@ -890,6 +1017,9 @@ export default function WorkspaceApp() {
   const selectedSpeakingEssay = taskThreeEssays.find((essay) => essay.id === selectedSpeakingEssayId);
   const selectedSpeakingVersion = selectedSpeakingEssay?.versions.find((version) => version.id === selectedSpeakingVersionId)
     ?? selectedSpeakingEssay?.versions[0];
+  const selectedSpeakingVocabulary = selectedSpeakingEssay
+    ? taskThreeVocabularyRows(selectedSpeakingEssay.vocabulary, selectedSpeakingVersion?.sections ?? [])
+    : [];
   const taskThreeCategories = [...new Set(taskThreeEssays.map(taskThreeCategory))].sort((a, b) => a.localeCompare(b));
   const filteredTaskThreeEssays = taskThreeEssays.filter((essay) => {
     const category = taskThreeCategory(essay);
@@ -1921,23 +2051,56 @@ export default function WorkspaceApp() {
                                       </button>
                                     ))}
                                 </div>
-                                <article className="oral-task3-content-card">
-                                  <h3>{selectedSpeakingVersion?.versionLabel ?? "Topic content"}</h3>
-                                  {selectedSpeakingVersion?.sections.map((section) => (
-                                    <section className="oral-task3-content-section" key={section.id}>
-                                      {section.heading && <h4>{section.heading}</h4>}
-                                      <p>{section.content}</p>
-                                    </section>
-                                  ))}
-                                </article>
+                                {selectedSpeakingVersion?.versionLabel.toLocaleLowerCase("fr").includes("vocab") &&
+                                  selectedSpeakingVocabulary.length > 0 ? (
+                                  <article className="oral-task3-vocabulary-card">
+                                    <header className="oral-task3-vocabulary-heading">
+                                      <span><BookOpen size={24} /></span>
+                                      <div>
+                                        <h3>Vocabulaire</h3>
+                                        <p>Vocabulaire du sujet</p>
+                                      </div>
+                                    </header>
+                                    <div className="oral-task3-vocabulary-table-wrap">
+                                      <table>
+                                        <thead>
+                                          <tr><th>Français</th><th>English meaning</th></tr>
+                                        </thead>
+                                        <tbody>
+                                          {selectedSpeakingVocabulary.map((entry) => (
+                                            <tr key={entry.id}>
+                                              <th scope="row">
+                                                {entry.frenchTerm}
+                                                {entry.example && <small>{entry.example}</small>}
+                                              </th>
+                                              <td>{entry.englishMeaning || "—"}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    <footer>{selectedSpeakingVocabulary.length} vocabulary terms</footer>
+                                  </article>
+                                ) : (
+                                  <article className="oral-task3-content-card">
+                                    <h3>{selectedSpeakingVersion?.versionLabel ?? "Topic content"}</h3>
+                                    {selectedSpeakingVersion?.sections.map((section) => (
+                                      <section className="oral-task3-content-section" key={section.id}>
+                                        {section.heading && normalizeTaskThreeHeading(section.heading) !== normalizeTaskThreeHeading(selectedSpeakingVersion.versionLabel) && <h4>{section.heading}</h4>}
+                                        <TaskThreeSectionContent content={section.content} />
+                                      </section>
+                                    ))}
+                                  </article>
+                                )}
                               </>
                             ) : selectedSpeakingEssay.content ? (
                               <article className="oral-task3-content-card">
                                 <h3>Existing response</h3>
-                                <p>{selectedSpeakingEssay.content}</p>
+                                <TaskThreeSectionContent content={selectedSpeakingEssay.content} />
                               </article>
                             ) : <div className="notice-box">No published structured versions are available for this topic yet.</div>}
-                            {selectedSpeakingEssay.vocabulary.length > 0 && <section className="oral-task3-learning-block">
+                            {selectedSpeakingEssay.vocabulary.length > 0 &&
+                              !selectedSpeakingVersion?.versionLabel.toLocaleLowerCase("fr").includes("vocab") && <section className="oral-task3-learning-block">
                               <h4>Topic vocabulary</h4>
                               <div className="oral-task3-vocabulary">
                                 {selectedSpeakingEssay.vocabulary.map((entry) => <article key={entry.id}>
