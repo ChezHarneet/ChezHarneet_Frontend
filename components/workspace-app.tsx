@@ -1,6 +1,6 @@
 "use client";
 
-import { apiFetch } from "../lib/api";
+import { apiFetch, refreshAccessToken, revokeRefreshSession } from "../lib/api";
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -436,6 +436,32 @@ const frenchUi: Record<string, string> = {
   "Plans": "Offres",
   "Sign in": "Se connecter",
   "Open learning space": "Accéder à mon espace",
+  "My learning space": "Mon espace d’apprentissage",
+  "My account": "Mon compte",
+  "Guest": "Visiteur",
+  "Visitor": "Visiteur",
+  "YOUR FRENCH JOURNEY STARTS HERE": "VOTRE PARCOURS EN FRANÇAIS COMMENCE ICI",
+  "Welcome to your learning space.": "Bienvenue dans votre espace d’apprentissage.",
+  "Sign in to continue learning, or create a free account to save your progress and start your TCF Canada preparation.": "Connectez-vous pour continuer votre apprentissage ou créez un compte gratuit pour enregistrer vos progrès et commencer votre préparation au TCF Canada.",
+  "Register to start your journey": "Inscrivez-vous pour commencer",
+  "Choose a place to start": "Choisissez par où commencer",
+  "Try a speaking preview": "Essayez un aperçu oral",
+  "Three task previews are ready to explore.": "Trois aperçus de tâches sont prêts à découvrir.",
+  "Build confidence with guided writing practice.": "Gagnez en confiance grâce à des exercices d’écriture guidés.",
+  "Grow your vocabulary": "Enrichissez votre vocabulaire",
+  "Learn useful French words in context.": "Apprenez des mots français utiles en contexte.",
+  "Review grammar": "Révisez la grammaire",
+  "Strengthen your French foundations.": "Renforcez vos bases en français.",
+  "Explore a free preview": "Explorez un aperçu gratuit",
+  "One sample topic from each speaking task": "Un sujet exemple pour chaque tâche orale",
+  "Preview coming soon": "Aperçu bientôt disponible",
+  "Grammar for this topic": "Grammaire de ce sujet",
+  "GRAMMAR FOR THIS TASK 2 TOPIC": "GRAMMAIRE POUR CE SUJET DE LA TÂCHE 2",
+  "A quick grammar guide for using French in this situation.": "Un guide rapide pour utiliser le français dans cette situation.",
+  "GRAMMAR RULE": "RÈGLE DE GRAMMAIRE",
+  "EXPLANATION": "EXPLICATION",
+  "EXAMPLE": "EXEMPLE",
+  "Grammar guide": "Guide de grammaire",
   "A clearer way to prepare": "Une préparation plus claire",
   "Build your French confidence,": "Gagnez en confiance en français,",
   "one step at a time.": "un pas après l'autre.",
@@ -917,7 +943,7 @@ export default function WorkspaceApp() {
   const [profilePhone, setProfilePhone] = useState("");
     const accountName = sessionName || (sessionEmail
     ? sessionEmail.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
-    : "Learner");
+    : "Guest");
   const accountInitials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem("chez-harneet-language");
@@ -928,6 +954,65 @@ export default function WorkspaceApp() {
     setProfileFirstName(window.sessionStorage.getItem("learner-first-name") ?? "");
     setProfileLastName(window.sessionStorage.getItem("learner-last-name") ?? "");
     setProfilePhone(window.sessionStorage.getItem("learner-phone") ?? "");
+    let cancelled = false;
+    void (async () => {
+      const accessToken =
+        window.sessionStorage.getItem("learner-access-token") ??
+        await refreshAccessToken();
+      if (!accessToken || cancelled) return;
+      const response = await apiFetch("/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          [
+            "learner-access-token",
+            "learner-account-email",
+            "learner-account-name",
+            "learner-account-role",
+            "learner-first-name",
+            "learner-last-name",
+            "learner-phone",
+            "cms-access-token",
+            "cms-account-email",
+          ].forEach((key) => window.sessionStorage.removeItem(key));
+          setSessionEmail("");
+          setSessionName("");
+          setSessionRole("USER");
+        }
+        return;
+      }
+      const profile = await response.json();
+      if (cancelled) return;
+      const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
+      const activeToken =
+        window.sessionStorage.getItem("learner-access-token") ?? accessToken;
+      const values: Record<string, string> = {
+        "learner-access-token": activeToken,
+        "learner-account-email": profile.email ?? "",
+        "learner-account-name": fullName,
+        "learner-account-role": profile.role ?? "USER",
+        "learner-first-name": profile.firstName ?? "",
+        "learner-last-name": profile.lastName ?? "",
+        "learner-phone": profile.phone ?? "",
+      };
+      for (const [key, value] of Object.entries(values)) {
+        window.sessionStorage.setItem(key, value);
+      }
+      setSessionEmail(profile.email ?? "");
+      setSessionName(fullName);
+      setSessionRole(profile.role ?? "USER");
+      setProfileFirstName(profile.firstName ?? "");
+      setProfileLastName(profile.lastName ?? "");
+      setProfilePhone(profile.phone ?? "");
+    })().catch((cause) => {
+      if (!cancelled) {
+        setAuthError(cause instanceof Error ? cause.message : "Could not restore your sign-in");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   useEffect(() => {
     document.documentElement.lang = language;
@@ -1014,6 +1099,11 @@ export default function WorkspaceApp() {
     theme.topics.map((topic) => asLearnerTopic(topic, theme, "TASK1")),
   );
   const taskThreeEssays = structuredTask("TASK3")?.essays ?? [];
+  const previewSpeakingTopicIds = new Set([
+    taskOneTopics[0]?.id,
+    taskTwoSpeakingTopics[0]?.id,
+    taskThreeEssays[0]?.id,
+  ].filter((id): id is string => Boolean(id)));
   const selectedSpeakingEssay = taskThreeEssays.find((essay) => essay.id === selectedSpeakingEssayId);
   const selectedSpeakingVersion = selectedSpeakingEssay?.versions.find((version) => version.id === selectedSpeakingVersionId)
     ?? selectedSpeakingEssay?.versions[0];
@@ -1038,7 +1128,9 @@ export default function WorkspaceApp() {
     (taskThreePage - 1) * taskThreePageSize,
     taskThreePage * taskThreePageSize,
   );
-  const selectedPresentationTopic = taskOneTopics.find((topic) => topic.id === selectedPresentationTopicId) ?? taskOneTopics[0];
+  const selectedPresentationTopic = !sessionEmail
+    ? taskOneTopics[0]
+    : taskOneTopics.find((topic) => topic.id === selectedPresentationTopicId) ?? taskOneTopics[0];
   const taskTwoCategorizedTopics = taskTwoThemes.flatMap((theme) =>
     theme.topics.map((sourceTopic) => ({
       topic: asLearnerTopic(sourceTopic, theme, "TASK2"),
@@ -1091,6 +1183,17 @@ export default function WorkspaceApp() {
     };
   const writingTasks = tasks.filter((task) => task.skill === "WRITING");
   const activeTopicRecord = topics.find((topic) => topic.id === activeTopicId) ?? null;
+  const activeTopicGrammarNotes = activeTopicRecord?.theme.task?.type === "TASK2"
+    ? (library?.grammar.filter((note) => note.topic.id === activeTopicRecord.id) ?? [])
+    : [];
+  const activeTopicGrammarFallback = activeTopicRecord?.theme.task?.type === "TASK2"
+    ? referenceSection(activeTopicRecord.extraInformation, /Grammar Rule/i, /Exam criterion/i)
+    : "";
+  const practiceTopicLocked = Boolean(
+    !sessionEmail &&
+    activeTopicRecord?.theme.task?.module.skill === "SPEAKING" &&
+    !previewSpeakingTopicIds.has(activeTopicRecord.id),
+  );
   const completedTopicIds = new Set([
     ...progressRecords.filter((record) => record.completed).map((record) => record.topicId),
     ...done,
@@ -1150,6 +1253,13 @@ export default function WorkspaceApp() {
     setSidebar(false);
     setSubmitted(false);
   };
+  const openSignIn = () => {
+    setAuthPurpose("LOGIN");
+    setAuthError("");
+    setAuthNotice("");
+    setOtpSent(false);
+    setShowLogin(true);
+  };
   const startTask = (task: CourseTask & { skill?: string }) => {
     setActiveTask(task);
     const topic = topics.find((item) => item.theme.task?.type === task.type && item.theme.task.module.skill === task.skill);
@@ -1159,6 +1269,10 @@ export default function WorkspaceApp() {
     go("practice");
   };
   const startTopic = (topic: LearnerTopic) => {
+    if (!sessionEmail && !previewSpeakingTopicIds.has(topic.id)) {
+      openSignIn();
+      return;
+    }
     setActiveTopic(topic.title);
     setActiveTopicId(topic.id);
     setActiveTask(speakingTasks.find((task) => task.type === topic.theme.task?.type) ?? null);
@@ -1286,6 +1400,33 @@ export default function WorkspaceApp() {
       setAuthBusy(false);
     }
   };
+  const signOut = async () => {
+    setAuthError("");
+    try {
+      await revokeRefreshSession();
+    } catch (cause) {
+      setAuthError(cause instanceof Error ? cause.message : "Could not securely sign out");
+      setShowLogin(true);
+      return;
+    }
+    [
+      "learner-access-token",
+      "learner-account-email",
+      "learner-account-name",
+      "learner-account-role",
+      "learner-first-name",
+      "learner-last-name",
+      "learner-phone",
+      "cms-access-token",
+      "cms-account-email",
+    ].forEach((key) => window.sessionStorage.removeItem(key));
+    setSessionEmail("");
+    setSessionName("");
+    setSessionRole("USER");
+    setShowProfile(false);
+    setShowLogin(false);
+    setAuthNotice("You’ve been signed out.");
+  };
   if (pathname.startsWith("/admin") || pathname === "/auth/callback") return null;
   const app = (
     <div className={`app-shell${page === "landing" ? " landing-app" : ""}`}>
@@ -1367,7 +1508,7 @@ export default function WorkspaceApp() {
           <div className="avatar">{accountInitials}</div>
           <div className="profile-meta">
             <b>{accountName}</b>
-            <small>{sessionEmail || "Free learner"}</small>
+            <small>{sessionEmail || "Visitor"}</small>
           </div>
           <MoreHorizontal size={18} className="muted-icon" />
         </div>
@@ -1382,19 +1523,7 @@ export default function WorkspaceApp() {
             <button
               onClick={() => {
                 if (sessionEmail) {
-                  window.sessionStorage.removeItem("learner-access-token");
-                  window.sessionStorage.removeItem("learner-account-email");
-                  window.sessionStorage.removeItem("learner-account-name");
-                  window.sessionStorage.removeItem("learner-account-role");
-                  window.sessionStorage.removeItem("learner-first-name");
-                  window.sessionStorage.removeItem("learner-last-name");
-                  window.sessionStorage.removeItem("learner-phone");
-                  window.sessionStorage.removeItem("cms-access-token");
-                  window.sessionStorage.removeItem("cms-account-email");
-                  setSessionEmail("");
-                  setSessionName("");
-                  setSessionRole("USER");
-                  setShowProfile(false);
+                  void signOut();
                   return;
                 }
                 setShowProfile(false);
@@ -1415,7 +1544,23 @@ export default function WorkspaceApp() {
           <nav aria-label="Main navigation">
             <a href="#approach">How it works</a><a href="#practice-path">Practice</a><a href="#plans">Plans</a>
           </nav>
-          <div className="landing-nav-actions"><LanguageSwitcher language={language} onChange={setLanguage}/><button className="landing-login" onClick={() => setShowLogin(true)}>Sign in</button><button className="landing-nav-cta" onClick={() => go("dashboard")}>Open learning space <ArrowRight size={15} /></button></div>
+          <div className="landing-nav-actions">
+            <LanguageSwitcher language={language} onChange={setLanguage} />
+            {sessionEmail ? (
+              <button
+                className="landing-login"
+                onClick={() => setShowLogin(true)}
+                aria-label={`Open ${accountName}'s account`}
+              >
+                My account
+              </button>
+            ) : (
+              <button className="landing-login" onClick={() => setShowLogin(true)}>Sign in</button>
+            )}
+            <button className="landing-nav-cta" onClick={() => go("dashboard")}>
+              {sessionEmail ? "My learning space" : "Open learning space"} <ArrowRight size={15} />
+            </button>
+          </div>
         </header> : <header className="topbar">
           <button
             className="mobile-menu"
@@ -1457,15 +1602,15 @@ export default function WorkspaceApp() {
             </button>
             {showProfile && profileAnchor === "header" && (
               <div className="profile-pop header-profile-pop">
-                <div className="profile-pop-account"><span className="avatar">{accountInitials}</span><span><b>{accountName}</b><small>{sessionEmail || "Free learner"}</small></span></div>
+                <div className="profile-pop-account"><span className="avatar">{accountInitials}</span><span><b>{accountName}</b><small>{sessionEmail || "Visitor"}</small></span></div>
                 <button onClick={() => { setShowLogin(true); setShowProfile(false); }}><UserRound size={15} /> {sessionEmail ? "Account" : "Sign in / account"}</button>
                 <button onClick={() => { setShowUpgrade(true); setShowProfile(false); }}><Crown size={15} /> Manage plan</button>
-                {sessionEmail && <button onClick={() => { ["learner-access-token", "learner-account-email", "learner-account-name", "learner-account-role", "learner-first-name", "learner-last-name", "learner-phone", "cms-access-token", "cms-account-email"].forEach((key) => window.sessionStorage.removeItem(key)); setSessionEmail(""); setSessionName(""); setSessionRole("USER"); setShowProfile(false); }}><LogOut size={15} /> Sign out</button>}
+                {sessionEmail && <button onClick={() => void signOut()}><LogOut size={15} /> Sign out</button>}
               </div>
             )}
           </div>
         </header>}
-        <div className={`page-content${page === "landing" ? " landing-content" : ""}`}>
+        <div className={`page-content${page === "landing" ? " landing-content" : ""}${page === "dashboard" ? " dashboard-content" : ""}`}>
           {page === "landing" ? <>
             <section className="landing-hero">
               <div className="landing-hero-copy">
@@ -1493,6 +1638,8 @@ export default function WorkspaceApp() {
           {contentLoading && <div className="notice-box" role="status">Loading your course content…</div>}
           {page === "dashboard" && (
             <>
+              {sessionEmail ? (
+                <>
               <section className="welcome-row">
                 <div>
                   <div className="eyebrow">
@@ -1761,6 +1908,84 @@ export default function WorkspaceApp() {
                   })}
                 </div>
               </section>
+                </>
+              ) : (
+                <section className="guest-dashboard">
+                  <div className="guest-dashboard-hero">
+                    <div className="guest-dashboard-welcome">
+                      <div className="guest-dashboard-icon"><UserRound size={24} /></div>
+                      <span className="landing-section-kicker">YOUR FRENCH JOURNEY STARTS HERE</span>
+                      <h1>Welcome to your learning space.</h1>
+                      <p>Sign in to continue learning, or create a free account to save your progress and start your TCF Canada preparation.</p>
+                      <div className="guest-dashboard-actions">
+                        <button className="primary-btn" onClick={openSignIn}>
+                          Sign in <ArrowRight size={16} />
+                        </button>
+                        <button
+                          className="outline-btn"
+                          onClick={() => {
+                            setAuthPurpose("SIGNUP");
+                            setAuthError("");
+                            setAuthNotice("");
+                            setOtpSent(false);
+                            setShowLogin(true);
+                          }}
+                        >
+                          Register to start your journey
+                        </button>
+                      </div>
+                    </div>
+                    <aside className="guest-preview-panel">
+                      <div className="guest-preview-heading">
+                        <span className="guest-preview-icon"><Mic size={17} /></span>
+                        <span><b>Explore a free preview</b><small>One sample topic from each speaking task</small></span>
+                      </div>
+                      {oralExpressionTasks.map((task, index) => {
+                        const previewTopic = index === 0
+                          ? taskOneTopics[0]
+                          : index === 1
+                            ? taskTwoSpeakingTopics[0]
+                            : taskThreeEssays[0];
+                        return (
+                          <button
+                            className="guest-preview-task"
+                            type="button"
+                            key={task.type}
+                            disabled={!previewTopic}
+                            onClick={() => {
+                              setSelectedSpeakingTaskType(task.type);
+                              setSelectedSpeakingEssayId("");
+                              setSelectedSpeakingVersionId("");
+                              go("speaking");
+                            }}
+                          >
+                            <span className={`guest-preview-number preview-tone-${index + 1}`}>{index + 1}</span>
+                            <span><b>{task.title}</b><small>{previewTopic?.title ?? "Preview coming soon"}</small></span>
+                            <ArrowRight size={15} />
+                          </button>
+                        );
+                      })}
+                    </aside>
+                  </div>
+                  <div className="guest-dashboard-explore">
+                    <h2>Choose a place to start</h2>
+                    <div className="guest-dashboard-links">
+                      {[
+                        { title: "Try a speaking preview", description: "Three task previews are ready to explore.", icon: MessageCircle, target: "speaking" as Page },
+                        { title: "Explore writing", description: "Build confidence with guided writing practice.", icon: FileText, target: "writing" as Page },
+                        { title: "Grow your vocabulary", description: "Learn useful French words in context.", icon: BookOpen, target: "vocabulary" as Page },
+                        { title: "Review grammar", description: "Strengthen your French foundations.", icon: Sparkles, target: "grammar" as Page },
+                      ].map(({ title, description, icon: Icon, target }) => (
+                        <button className="guest-dashboard-link" type="button" key={title} onClick={() => go(target)}>
+                          <span className="guest-dashboard-link-icon"><Icon size={18} /></span>
+                          <span><b>{title}</b><small>{description}</small></span>
+                          <ArrowRight size={16} aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
             </>
           )}
           {page === "speaking" && (
@@ -1838,16 +2063,22 @@ export default function WorkspaceApp() {
                     {taskOneTopics.length ? (
                       <div className="oral-task1-layout">
                         <div className="oral-task1-list">
-                          {taskOneTopics.map((topic, index) => (
+                          {taskOneTopics.map((topic, index) => {
+                            const isLocked = !sessionEmail && index > 0;
+                            return (
                             <button
-                              className={`oral-task1-topic${selectedPresentationTopic?.id === topic.id ? " is-active" : ""}`}
+                              className={`oral-task1-topic${selectedPresentationTopic?.id === topic.id ? " is-active" : ""}${isLocked ? " guest-locked-topic" : ""}`}
                               type="button"
                               key={topic.id}
-                              onClick={() => setSelectedPresentationTopicId(topic.id)}
+                              onClick={() => {
+                                if (isLocked) openSignIn();
+                                else setSelectedPresentationTopicId(topic.id);
+                              }}
                             >
-                              <span>{String(index + 1).padStart(2, "0")}</span><b>{topic.title}</b><ChevronRight size={16} />
+                              <span>{String(index + 1).padStart(2, "0")}</span><b>{topic.title}</b>
+                              {isLocked ? <LockKeyhole size={15} aria-label="Locked" /> : <ChevronRight size={16} />}
                             </button>
-                          ))}
+                          );})}
                         </div>
                         {selectedPresentationTopic && <article className="oral-task1-detail">
                           <h3>{selectedPresentationTopic.title}</h3>
@@ -1933,8 +2164,9 @@ export default function WorkspaceApp() {
                             {!collapsed && <div className="oral-topic-rows">
                               {group.topics.map((topic) => {
                                 const topicIndex = taskTwoSpeakingTopics.findIndex((item) => item.id === topic.id);
+                                const isLocked = !sessionEmail && topic.id !== taskTwoSpeakingTopics[0]?.id;
                                 return (
-                                  <button className="oral-topic-row" key={topic.id} type="button" onClick={() => startTopic(topic)}>
+                                  <button className={`oral-topic-row${isLocked ? " guest-locked-topic" : ""}`} key={topic.id} type="button" onClick={() => startTopic(topic)}>
                                     <span className={`oral-topic-number oral-number-${topicIndex % 4}`}>{String(topicIndex + 1).padStart(2, "0")}</span>
                                     <span className="oral-topic-description">
                                       <b>{topic.title}</b>
@@ -1942,7 +2174,7 @@ export default function WorkspaceApp() {
                                     </span>
                                     <span className="oral-level-pill">{countQuestionPrompts(topic.question)} questions</span>
                                     <span className="oral-topic-time"><Clock3 size={14} /> 3–4 min</span>
-                                    <ChevronRight size={16} aria-hidden="true" />
+                                    {isLocked ? <LockKeyhole size={15} aria-label="Locked" /> : <ChevronRight size={16} aria-hidden="true" />}
                                   </button>
                                 );
                               })}
@@ -1960,7 +2192,7 @@ export default function WorkspaceApp() {
               )}
                 {selectedSpeakingTaskSpec.type === "TASK3" && (
                   <section className="oral-learning-section oral-task3-experience">
-                    {taskThreeEssays.length ? selectedSpeakingEssay ? (
+                    {taskThreeEssays.length ? selectedSpeakingEssay && (sessionEmail || selectedSpeakingEssay.id === taskThreeEssays[0]?.id) ? (
                       <>
                         <div className="oral-task3-detail-navigation">
                           <button type="button" className="oral-task3-back" onClick={() => {
@@ -2191,6 +2423,7 @@ export default function WorkspaceApp() {
                               {visibleTaskThreeEssays.map((essay, index) => {
                                 const category = taskThreeCategory(essay);
                                 const CategoryIcon = taskThreeCategoryIcon(category);
+                                const isLocked = !sessionEmail && essay.id !== taskThreeEssays[0]?.id;
                                 const levels = [
                                   essay.versions.some((version) => version.versionLabel.toLowerCase().includes("clb 7")) ? "CLB 7" : "",
                                   essay.versions.some((version) => version.versionLabel.toLowerCase().includes("clb 5")) ? "5–6" : "",
@@ -2198,9 +2431,13 @@ export default function WorkspaceApp() {
                                 return (
                                   <button
                                     type="button"
-                                    className="oral-task3-topic-card"
+                                    className={`oral-task3-topic-card${isLocked ? " guest-locked-topic" : ""}`}
                                     key={essay.id}
                                     onClick={() => {
+                                      if (isLocked) {
+                                        openSignIn();
+                                        return;
+                                      }
                                       setSelectedSpeakingEssayId(essay.id);
                                       setSelectedSpeakingVersionId(
                                         essay.versions.find((version) => version.versionLabel.toLowerCase().includes("plan"))?.id
@@ -2215,7 +2452,7 @@ export default function WorkspaceApp() {
                                       <b>{essay.title}</b>
                                       <span><i>{category}</i>{levels && <i>{levels}</i>}</span>
                                     </span>
-                                    <ChevronRight size={18} />
+                                    {isLocked ? <LockKeyhole size={16} aria-label="Locked" /> : <ChevronRight size={18} />}
                                   </button>
                                 );
                               })}
@@ -2387,42 +2624,58 @@ export default function WorkspaceApp() {
           )}
           {page === "grammar" && (
             <>
-              <div className="page-intro">
-                <div className="eyebrow">MAKE YOUR FRENCH FLOW</div>
-                <h1>Grammar notes</h1>
-                <p className="subhead">
-                  Simple explanations to support confident speaking and writing.
-                </p>
-              </div>
-              <div className="grammar-grid">
-                {grammarNotes.map((g, i) => (
-                  <article className="grammar-card" key={g.id}>
-                    <div className={`grammar-icon ${["lavender", "mint", "peach"][i % 3]}`}>
-                      <BookOpen size={19} />
-                    </div>
-                    <span className="task-kicker">{g.topic.title}</span>
-                    <h3>{g.rule}</h3>
-                    <p style={{ whiteSpace: "pre-line" }}>{g.explanation}</p>
-                    <div className="example-pills">
-                      {g.example && <span>{g.example}</span>}
-                    </div>
-                    <button
-                      className="task-action"
-                      onClick={() => {
-                        setQuery(g.topic.title);
-                        go("vocabulary");
-                      }}
-                    >
-                      Explore examples <ArrowRight size={15} />
-                    </button>
-                  </article>
-                ))}
-                {!contentLoading && grammarNotes.length === 0 && <div className="notice-box">No published grammar notes yet.</div>}
-              </div>
+              <section className="grammar-guide">
+                <header className="grammar-guide-heading">
+                  <div className="grammar-guide-icon"><BookOpen size={28} /></div>
+                  <div>
+                    <span>GRAMMAR RULE</span>
+                    <h1>Grammar guide</h1>
+                  </div>
+                </header>
+                <div className="grammar-guide-list">
+                  {grammarNotes.map((g, i) => (
+                    <details className="grammar-guide-row" key={g.id}>
+                      <summary>
+                        <span className="grammar-guide-index" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                        <strong>{g.rule}</strong>
+                        <span className="grammar-guide-preview">
+                          {[g.example, g.explanation].filter(Boolean).join(" · ") || g.topic.title}
+                        </span>
+                        <ChevronRight className="grammar-guide-chevron" size={20} aria-hidden="true" />
+                      </summary>
+                      <div className="grammar-guide-details">
+                        {g.example && <div><span>EXAMPLE</span><p>{g.example}</p></div>}
+                        {g.explanation && <div><span>EXPLANATION</span><p>{g.explanation}</p></div>}
+                        <small>{g.topic.title}</small>
+                        <button
+                          className="task-action"
+                          onClick={() => {
+                            setQuery(g.topic.title);
+                            go("vocabulary");
+                          }}
+                        >
+                          Explore examples <ArrowRight size={15} />
+                        </button>
+                      </div>
+                    </details>
+                  ))}
+                  {!contentLoading && grammarNotes.length === 0 && <div className="notice-box">No published grammar notes yet.</div>}
+                </div>
+              </section>
             </>
           )}
           {page === "practice" && (
-            <>
+            practiceTopicLocked ? (
+              <section className="guest-dashboard">
+                <div className="guest-dashboard-icon"><LockKeyhole size={24} /></div>
+                <span className="landing-section-kicker">TOPIC LOCKED</span>
+                <h1>Sign in to continue practising.</h1>
+                <p>Create an account or sign in to unlock this topic and continue your TCF Canada preparation.</p>
+                <div className="guest-dashboard-actions">
+                  <button className="primary-btn" type="button" onClick={openSignIn}>Sign in <ArrowRight size={16} /></button>
+                </div>
+              </section>
+            ) : <>
               <button
                 className="back-link"
                 onClick={() =>
@@ -2531,6 +2784,43 @@ export default function WorkspaceApp() {
                       </article>)}
                     </div> : <p className="topic-vocab-empty">Vocabulary for this topic has not been added yet.</p>}
                   </section>}
+                  {activeTopicRecord?.theme.task?.type === "TASK2" && (activeTopicGrammarNotes.length > 0 || activeTopicGrammarFallback) && (
+                    <section className="topic-grammar-panel">
+                      <div className="topic-grammar-heading">
+                        <div className="topic-grammar-icon"><Sparkles size={17} /></div>
+                        <div>
+                          <span>GRAMMAR FOR THIS TASK 2 TOPIC</span>
+                          <h3>Grammar for this topic</h3>
+                          <p>A quick grammar guide for using French in this situation.</p>
+                        </div>
+                        <span className="topic-grammar-count">{activeTopicGrammarNotes.length || 1} {activeTopicGrammarNotes.length === 1 ? "note" : "notes"}</span>
+                      </div>
+                      {activeTopicGrammarNotes.length ? (
+                        <div className="topic-grammar-grid">
+                          {activeTopicGrammarNotes.map((note, index) => (
+                            <article className="topic-grammar-item" key={note.id}>
+                              <span className="topic-grammar-index">{String(index + 1).padStart(2, "0")}</span>
+                              <div className="topic-grammar-content">
+                                <span className="topic-grammar-label">GRAMMAR RULE</span>
+                                <h4>{note.rule}</h4>
+                                {note.explanation && <div className="topic-grammar-detail"><span>EXPLANATION</span><p>{note.explanation}</p></div>}
+                                {note.example && <div className="topic-grammar-example"><span>EXAMPLE</span><p>{note.example}</p></div>}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <article className="topic-grammar-item topic-grammar-fallback">
+                          <span className="topic-grammar-index"><BookOpen size={17} /></span>
+                          <div className="topic-grammar-content">
+                            <span className="topic-grammar-label">GRAMMAR RULE</span>
+                            <h4>Grammar guide</h4>
+                            <p className="topic-grammar-legacy">{activeTopicGrammarFallback}</p>
+                          </div>
+                        </article>
+                      )}
+                    </section>
+                  )}
                 </section>
                 <aside className="practice-side">
                   <div className="side-card">
@@ -2748,7 +3038,7 @@ export default function WorkspaceApp() {
                   {authNotice && <p className="auth-message">{authNotice}</p>}
                   <button className="primary-btn full-btn" type="submit" disabled={authBusy}>{authBusy ? "Saving…" : "Save profile"} <Check size={15} /></button>
                 </form>
-                <button className="auth-back" onClick={() => { ["learner-access-token", "learner-account-email", "learner-account-name", "learner-account-role", "learner-first-name", "learner-last-name", "learner-phone", "cms-access-token", "cms-account-email"].forEach((key) => window.sessionStorage.removeItem(key)); setSessionEmail(""); setSessionName(""); setSessionRole("USER"); setAuthNotice("You’ve been signed out."); }}>Sign out <LogOut size={15} /></button>
+                <button className="auth-back" onClick={() => void signOut()}>Sign out <LogOut size={15} /></button>
               </>
             ) : (
               <>

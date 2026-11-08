@@ -1,6 +1,6 @@
 "use client";
 
-import { apiFetch } from "../lib/api";
+import { apiFetch, refreshAccessToken, revokeRefreshSession } from "../lib/api";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -303,18 +303,24 @@ export default function CmsApp() {
   }, [loadDashboard, loadList, selectedResource, token]);
 
   useEffect(() => {
-    const existingToken = window.sessionStorage.getItem("cms-access-token") ?? window.sessionStorage.getItem("learner-access-token");
-    if (!existingToken) return;
+    const invitedEmail = new URLSearchParams(window.location.search).get("email");
+    if (invitedEmail) setEmail(invitedEmail);
     void (async () => {
       try {
+        const existingToken =
+          window.sessionStorage.getItem("cms-access-token") ??
+          window.sessionStorage.getItem("learner-access-token") ??
+          await refreshAccessToken();
+        if (!existingToken) return;
         const response = await apiFetch(`/auth/me`, { headers: { Authorization: `Bearer ${existingToken}` } });
         const profile = await response.json();
         if (!response.ok || !["ADMIN", "SUPER_ADMIN"].includes(profile.role)) throw new Error("This account does not have administrator access");
-        window.sessionStorage.setItem("cms-access-token", existingToken);
+        const activeToken = window.sessionStorage.getItem("cms-access-token") ?? existingToken;
+        window.sessionStorage.setItem("cms-access-token", activeToken);
         window.sessionStorage.setItem("cms-account-email", profile.email);
         setSessionEmail(profile.email);
         setSessionRole(profile.role);
-        setToken(existingToken);
+        setToken(activeToken);
       } catch {
         window.sessionStorage.removeItem("cms-access-token");
         window.sessionStorage.removeItem("cms-account-email");
@@ -423,9 +429,19 @@ export default function CmsApp() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    setError("");
+    try {
+      await revokeRefreshSession();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not securely sign out");
+      return;
+    }
     window.sessionStorage.removeItem("cms-access-token");
+    window.sessionStorage.removeItem("learner-access-token");
     window.sessionStorage.removeItem("cms-account-email");
+    window.sessionStorage.removeItem("learner-account-email");
+    ["learner-account-name", "learner-account-role", "learner-first-name", "learner-last-name", "learner-phone"].forEach((key) => window.sessionStorage.removeItem(key));
     setToken("");
     setSessionEmail("");
     setSessionRole("");
