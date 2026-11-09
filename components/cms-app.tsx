@@ -684,6 +684,11 @@ export default function CmsApp() {
         <button className={`cms-nav-link ${!selectedResource ? "active" : ""}`} onClick={() => router.push("/admin")}>
           <LayoutDashboard size={18} /> Overview
         </button>
+        {["ADMIN", "SUPER_ADMIN"].includes(sessionRole) && (
+          <button className="cms-nav-link" onClick={() => router.push("/dashboard")}>
+            <ArrowLeft size={17} /><span>Learner section</span>
+          </button>
+        )}
         <p className="cms-nav-caption">LEARNING CONTENT</p>
         <nav className="cms-nav-list">
           <button className={`cms-nav-link ${isSpeakingPage ? "active" : ""}`} onClick={() => router.push("/admin/speaking")}>

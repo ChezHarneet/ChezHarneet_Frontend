@@ -950,7 +950,7 @@ export default function WorkspaceApp() {
     if (savedLanguage === "fr" || savedLanguage === "en") setLanguage(savedLanguage);
     setSessionEmail(window.sessionStorage.getItem("learner-account-email") ?? "");
     setSessionName(window.sessionStorage.getItem("learner-account-name") ?? "");
-    setSessionRole(window.sessionStorage.getItem("learner-account-role") ?? "USER");
+    // Role visibility is derived from /auth/me, never from editable browser storage.
     setProfileFirstName(window.sessionStorage.getItem("learner-first-name") ?? "");
     setProfileLastName(window.sessionStorage.getItem("learner-last-name") ?? "");
     setProfilePhone(window.sessionStorage.getItem("learner-phone") ?? "");
@@ -1481,6 +1481,12 @@ export default function WorkspaceApp() {
           <Activity size={18} />
           <span>My progress</span>
         </button>
+        {["ADMIN", "SUPER_ADMIN"].includes(sessionRole) && (
+          <button className="nav-link" onClick={() => router.push("/admin")}>
+            <ArrowLeft size={18} />
+            <span>Admin section</span>
+          </button>
+        )}
         <div className="sidebar-spacer" />
         <div className="upgrade-card">
           <div className="upgrade-icon">
