@@ -1,6 +1,7 @@
 "use client";
 
 import { apiFetch, refreshAccessToken, revokeRefreshSession } from "../lib/api";
+import BrandLogo from "./brand-logo";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -645,7 +646,7 @@ export default function CmsApp() {
     return (
       <div className="cms-login-page">
         <section className="cms-login-card">
-          <div className="cms-brand-mark"><BookOpen size={21} /></div>
+          <BrandLogo className="cms-brand-mark" size={62} />
           <p className="cms-eyebrow">CHEZ HARNEET · CONTENT STUDIO</p>
           <h1>Sign in to your CMS</h1>
           <p className="cms-muted">
@@ -678,7 +679,7 @@ export default function CmsApp() {
     <div className="cms-shell">
       <aside className="cms-sidebar">
         <div className="cms-brand">
-          <div className="cms-brand-mark"><BookOpen size={19} /></div>
+          <BrandLogo className="cms-brand-mark" size={50} />
           <div><strong>Chez Harneet</strong><span>CONTENT STUDIO</span></div>
         </div>
         <button className={`cms-nav-link ${!selectedResource ? "active" : ""}`} onClick={() => router.push("/admin")}>

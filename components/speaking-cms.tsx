@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { API_BASE_URL, apiFetch } from "../lib/api";
 import { ArrowDown, ArrowUp, Eye, EyeOff, FileUp, LoaderCircle, Plus, Save, Send, Trash2, X } from "lucide-react";
 
@@ -998,7 +999,7 @@ export default function SpeakingCms({ token }: { token: string }) {
           </section>
 
           <section className="cms-panel">
-            <div className="speaking-cms-heading-row"><div><h3>Existing topics</h3><p>Review and edit one topic at a time as an alternative to PDF import.</p></div><a className="cms-button cms-secondary" href="/admin/essays">Open single-topic editor</a></div>
+            <div className="speaking-cms-heading-row"><div><h3>Existing topics</h3><p>Review and edit one topic at a time as an alternative to PDF import.</p></div><Link className="cms-button cms-secondary" href="/admin/essays">Open single-topic editor</Link></div>
             <div className="speaking-cms-essay-list">
               {essays.map((essay) => <button type="button" key={essay.id} className={selectedEssayId === essay.id ? "is-selected" : ""} onClick={() => { setSelectedEssayId(essay.id); setSelectedVersionId(""); }}>
                 <strong>{essay.title}</strong><small>{essay.status.toLowerCase()} · {essay.versions.length} versions</small>

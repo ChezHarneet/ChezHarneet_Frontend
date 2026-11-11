@@ -1,12 +1,12 @@
 "use client";
 
 import { apiFetch, refreshAccessToken, revokeRefreshSession } from "../lib/api";
+import BrandLogo from "./brand-logo";
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   AlertCircle,
-  ArrowDownRight,
   ArrowLeft,
   ArrowRight,
   AudioLines,
@@ -51,7 +51,7 @@ import {
   Utensils,
   Volume2,
   X,
-  Zap,
+  type LucideIcon,
 } from "lucide-react";
 
 type Page =
@@ -1241,7 +1241,7 @@ export default function WorkspaceApp() {
   const activeTopicVocabulary = activeTopicRecord
     ? vocabulary.filter((entry) => entry.topic.id === activeTopicRecord.id)
     : [];
-  const navItems: [Page, string, any][] = [
+  const navItems: [Page, string, LucideIcon][] = [
     ["dashboard", "Overview", Home],
     ["speaking", "Speaking", MessageCircle],
     ["writing", "Writing", FileText],
@@ -1432,9 +1432,7 @@ export default function WorkspaceApp() {
     <div className={`app-shell${page === "landing" ? " landing-app" : ""}`}>
       {page !== "landing" && <aside className={`sidebar ${sidebar ? "sidebar-open" : ""}`}>
         <div className="brand" onClick={() => go("dashboard")}>
-          <div className="brand-mark">
-            p<span>.</span>
-          </div>
+          <BrandLogo className="brand-mark" size={50} />
           <div>
             <b>Chez Harneet</b>
             <small>FRENCH EXAM</small>
@@ -1544,7 +1542,7 @@ export default function WorkspaceApp() {
       <main className="main-area">
         {page === "landing" ? <header className="landing-nav">
           <button className="landing-brand" onClick={() => go("landing")}>
-            <span className="landing-brand-mark">p<span>.</span></span>
+            <BrandLogo className="landing-brand-mark" size={48} />
             <span><b>Chez Harneet</b><small>FRENCH EXAM PREPARATION</small></span>
           </button>
           <nav aria-label="Main navigation">
@@ -1629,7 +1627,7 @@ export default function WorkspaceApp() {
               <div className="landing-hero-art" aria-label="A preview of the Chez Harneet learning space">
                 <div className="landing-art-glow"/><div className="landing-art-orbit orbit-one"/><div className="landing-art-orbit orbit-two"/>
                 <div className="landing-art-note note-one"><span className="landing-note-icon"><AudioLines size={17}/></span><span><b>Speaking practice</b><small>Ask, listen, follow up</small></span></div>
-                <div className="landing-art-panel"><div className="landing-panel-top"><span className="landing-panel-logo">p.</span><span><b>Your learning path</b><small>A little progress adds up</small></span><Sparkles size={17}/></div><div className="landing-panel-progress"><span/><span/><span/><span/></div><div className="landing-panel-task"><span className="landing-task-icon"><MessageCircle size={19}/></span><span><small>UP NEXT · SPEAKING</small><b>Ask the right questions</b><small>Guided role-play · 10 minutes</small></span><ArrowRight size={17}/></div><div className="landing-panel-foot"><CheckCircle2 size={15}/> Ready when you are</div></div>
+                <div className="landing-art-panel"><div className="landing-panel-top"><BrandLogo className="landing-panel-logo" size={34} /><span><b>Your learning path</b><small>A little progress adds up</small></span><Sparkles size={17}/></div><div className="landing-panel-progress"><span/><span/><span/><span/></div><div className="landing-panel-task"><span className="landing-task-icon"><MessageCircle size={19}/></span><span><small>UP NEXT · SPEAKING</small><b>Ask the right questions</b><small>Guided role-play · 10 minutes</small></span><ArrowRight size={17}/></div><div className="landing-panel-foot"><CheckCircle2 size={15}/> Ready when you are</div></div>
                 <div className="landing-art-note note-two"><span className="landing-note-check"><Check size={16}/></span><span><b>Practice your way</b><small>No perfect French required</small></span></div>
               </div>
             </section>
@@ -1638,7 +1636,7 @@ export default function WorkspaceApp() {
             <section className="landing-path" id="practice-path"><div className="landing-section-heading"><span className="landing-section-kicker">YOUR PREPARATION, IN FOCUS</span><h2>Know what to work on next.</h2><p>Move from a small daily practice to a more confident exam day.</p></div><div className="landing-steps"><article><span>1</span><div><b>Choose a skill</b><p>Start with speaking, writing, vocabulary, or grammar.</p></div></article><article><span>2</span><div><b>Practise with guidance</b><p>Use structured prompts to make each session count.</p></div></article><article><span>3</span><div><b>Keep building momentum</b><p>Return to your learning space and pick up where you left off.</p></div></article></div><button className="landing-primary" onClick={() => go("dashboard")}>Start exploring <ArrowRight size={16}/></button></section>
             <section className="landing-plans" id="plans"><div className="landing-section-heading"><span className="landing-section-kicker">A PLAN THAT FITS YOUR JOURNEY</span><h2>Start where you are.</h2><p>Explore Chez Harneet for free. More ways to practise are on the way.</p></div><div className="landing-plan-grid"><article><span className="landing-plan-label">YOUR STARTING POINT</span><h3>Free learning space</h3><p>Build your routine with guided activities and core French learning tools.</p><ul><li><CheckCircle2 size={15}/> Explore speaking and writing</li><li><CheckCircle2 size={15}/> Review vocabulary and grammar</li><li><CheckCircle2 size={15}/> Keep practice progress</li></ul><button className="landing-secondary" onClick={() => go("dashboard")}>Open the learning space <ArrowRight size={15}/></button></article><article className="landing-plan-plus"><span className="landing-plan-label">IN DEVELOPMENT</span><h3>More ways to prepare</h3><p>Expanded practice libraries and exam-style simulations are being prepared.</p><ul><li><CheckCircle2 size={15}/> Full scenario collections</li><li><CheckCircle2 size={15}/> Mock exam practice</li><li><CheckCircle2 size={15}/> Deeper progress insights</li></ul><button className="landing-plan-wait" onClick={() => setShowUpgrade(true)}>See what’s coming <Sparkles size={15}/></button></article></div><p className="landing-plan-note"><ShieldCheck size={14}/> No payment is collected in this preview. Pricing will be shown when plans are available.</p></section>
             <section className="landing-cta"><div><span className="landing-section-kicker">YOUR NEXT FRENCH MILESTONE</span><h2>Make space for steady progress.</h2><p>Open your learning space and find a practice that fits today.</p></div><button className="landing-cta-btn" onClick={() => go("dashboard")}>Enter Chez Harneet <ArrowRight size={16}/></button></section>
-            <footer className="landing-footer"><button className="landing-brand" onClick={() => go("landing")}><span className="landing-brand-mark">p<span>.</span></span><span><b>Chez Harneet</b><small>FRENCH EXAM PREPARATION</small></span></button><span>Independent French preparation · Not an official examination provider</span><button onClick={() => setShowLogin(true)}>Sign in <ArrowRight size={14}/></button></footer>
+            <footer className="landing-footer"><button className="landing-brand" onClick={() => go("landing")}><BrandLogo className="landing-brand-mark" size={48} /><span><b>Chez Harneet</b><small>FRENCH EXAM PREPARATION</small></span></button><span>Independent French preparation · Not an official examination provider</span><button onClick={() => setShowLogin(true)}>Sign in <ArrowRight size={14}/></button></footer>
           </> : <>
           {contentError && <div className="notice-box" role="alert">{contentError}</div>}
           {contentLoading && <div className="notice-box" role="status">Loading your course content…</div>}
@@ -2033,7 +2031,7 @@ export default function WorkspaceApp() {
                 <div className="oral-task-art" aria-hidden="true">
                   <span className="oral-bubble-main"><MessageCircle size={28} fill="currentColor" /></span>
                   <span className="oral-bubble-small"><MessageCircle size={20} fill="currentColor" /></span>
-                  <span className="oral-art-rays">///</span>
+                  <span className="oral-art-rays">{"///"}</span>
                 </div>
                 <div className="oral-task-copy">
                   <h3>{`Task ${oralExpressionTasks.findIndex((task) => task.type === selectedSpeakingTaskSpec.type) + 1} — ${selectedSpeakingTaskSpec.title}`}</h3>
@@ -2986,8 +2984,8 @@ export default function WorkspaceApp() {
             <div className="eyebrow">CHEZ HARNEET PLUS</div>
             <h2>Your next level is on its way.</h2>
             <p>
-              We're preparing full practice sets, mock exams, and more detailed
-              progress tools. Paid access is not enabled yet, so you won't be
+              We&apos;re preparing full practice sets, mock exams, and more detailed
+              progress tools. Paid access is not enabled yet, so you won&apos;t be
               charged.
             </p>
             <form

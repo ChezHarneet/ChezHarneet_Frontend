@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none">
+  <g stroke="#382317" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Parisian circle motif -->
+    <path d="M104 105A103 103 0 0 1 255 252" stroke-width="4"/>
+
+    <!-- Eiffel Tower -->
+    <path d="M158 19v14m-7 6h18v8h-18zm-3 9h24v9h-24z" stroke-width="4"/>
+    <path d="m151 51-8 84-10 83-19 39m55-206 8 84 10 83 19 39" stroke-width="4.5"/>
+    <path d="M148 70h24M145 103h30M141 137h38M137 171h46M132 207h56M119 251h82" stroke-width="4"/>
+    <path d="m149 72 22 31-29 34 36 34-45 36 55 44m-37-179-24 31 29 34-37 34 45 36-55 44" stroke-width="3.2"/>
+    <path d="M128 221q32-26 64 0" stroke-width="4"/>
+
+    <!-- Botanical branch -->
+    <path d="M112 251c-4-36-17-72-39-103-10-14-21-26-34-35m75 137c-15-28-29-47-49-60m54 20c-1-25 6-46 24-65m-50 59c-15-21-29-34-49-43m57 30c-5-24-4-45 4-66" stroke-width="3.8"/>
+    <path d="M70 149c-1-23 8-43 26-59 4 23-4 44-26 59Zm18 33c9-21 26-35 50-40-9 23-26 37-50 40Zm-16 18c-22-4-39-17-50-39 24 3 41 16 50 39Zm23-73c-3-15 2-29 15-40 4 16-1 29-15 40Z" stroke-width="3.5"/>
+    <path d="M103 128c-1-9 3-16 10-21m-60 52c-8-4-14-10-17-19" stroke-width="3.2"/>
+    <circle cx="110" cy="104" r="3.5" fill="#382317" stroke-width="2"/>
+    <circle cx="95" cy="112" r="3.5" fill="#382317" stroke-width="2"/>
+    <circle cx="120" cy="183" r="3.5" fill="#382317" stroke-width="2"/>
+    <path d="M71 238c-18-18-42-14-42 3 0 8 10 11 14 4m1-15c17-15 37-12 50 2" stroke-width="3.8"/>
+
+    <!-- Open book -->
+    <path d="M160 286c-26-26-64-47-120-58l13-16-30-4 14-17c42-3 89 10 123 40 34-30 81-43 123-40l14 17-30 4 13 16c-56 11-94 32-120 58Z" stroke-width="4.2"/>
+    <path d="M160 279c-32-23-74-39-127-48m127 39c-35-19-77-30-130-35m130 26c-34-14-77-21-133-21m133 39c34-23 76-39 127-48m-127 39c35-19 77-30 130-35m-130 26c34-14 77-21 133-21M160 286v13" stroke-width="3.1"/>
+    <path d="M160 286c-16-25-15-53 0-69 15 16 16 44 0 69Z" stroke-width="3.6"/>
+    <ellipse cx="160" cy="299" rx="7" ry="4.5" fill="#382317" stroke-width="2"/>
+  </g>
+</svg>
