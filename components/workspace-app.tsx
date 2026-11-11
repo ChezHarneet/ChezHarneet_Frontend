@@ -500,7 +500,15 @@ function speakFrench(text: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "fr-FR";
+  const frenchVoices = window.speechSynthesis
+    .getVoices()
+    .filter((voice) => voice.lang.toLocaleLowerCase().startsWith("fr"));
+  const voice =
+    frenchVoices.find((candidate) => candidate.lang.toLocaleLowerCase() === "fr-ca") ??
+    frenchVoices.find((candidate) => candidate.lang.toLocaleLowerCase() === "fr-fr") ??
+    frenchVoices[0];
+  utterance.lang = voice?.lang ?? "fr-CA";
+  if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
 }
 function countQuestionPrompts(text: string | null) {
@@ -1115,8 +1123,26 @@ function topicVocabularyFromText(topic: LearnerTopic) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(
-      (line) => line && !/^French vocabulary\s+English meaning$/i.test(line),
+      (line) =>
+        line &&
+        !/^(?:French|English|vocabulary|meaning)(?:\s+(?:French|English|vocabulary|meaning))*$/i.test(
+          line,
+        ),
     );
+  const normalizedLines: string[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (
+      /^l'heure d'arrivée \/ de check-in \/ check-out$/i.test(lines[index]) &&
+      /^départ time$/i.test(lines[index + 1] ?? "")
+    ) {
+      normalizedLines.push(
+        "l'heure d'arrivée / de départ arrival / departure time (check-in / check-out)",
+      );
+      index += 1;
+      continue;
+    }
+    normalizedLines.push(lines[index]);
+  }
   const entries: Array<{
     id: string;
     term: string;
@@ -1125,12 +1151,59 @@ function topicVocabularyFromText(topic: LearnerTopic) {
     topic: { id: string; title: string };
   }> = [];
   const englishStarts =
-    /\s(?=(?:to|a|an|the|public|nearby|quiet|furnished|well equipped|air-conditioned|shared|vegetarian|available|noise|size|price|rent|lease|housing|offer|advise|recommend|heating|paid|included|flatshare|roommate|furniture|rate|stay|washing|a real estate)\b)/i;
+    /\s(?=(?:to|a|an|the|public|nearby|quiet|furnished|well equipped|air-conditioned|shared|vegetarian|available|noise|size|price|rent|lease|housing|offer|advise|recommend|heating|paid|included|flatshare|roommate|furniture|rate|stay|washing|real estate|double|new|already|used|second-hand|negotiable|free|garden|garbage|problem|emergency|careful|windows|expenses|cleaning|products|someone|how|big|enough|season|availability|time|registration|enrolment|private|school|newcomers|homework|daycare|fees|supplies|online|happen|indoors|outdoors|schedule|planned|workshop|face painting|admission|games|opening|holidays|per year|lost|longer|shy|tastes|likes|soccer|swimming|music|favourite|favorite|colour|about|around|clothes|useful|fun|babysit|habits|first name|experience|calm|active|somewhere|diet|mealtimes|leisure|activities|screens|instructions|his|its|things|friendly|gentle|health|medication|progress|latin music|changing rooms|summer holidays|shoes|hours|exam preparation|french-speaking|includes|organization|animal|welfare|volunteering|campaign|veterinary|training|safety|membership|basis|colleague|professional|relaxed|remote work|salary|benefit|interview|background|transport|costs|birthday|arrival|return|departure|date|security|deposit|check-in|check-out|availability|registration|school supplies|happen|board games|opening hours|holidays|year|lost|around|babysit|mealtimes|leisure activities|friendly|progress|station|equipment|showers|bikes|appointment|pharmacist|advice|center|industry|staff|part-time|accommodation|wage|overtime|office|visiting|savanna|giraffe|all year|round|moment|feeding|families|seniors|directly|train|souvenirs|brochure|tourism|medical|night|dishes|crockery|cutlery|charges|rsvp|tape|heavy|fragile|interactive|authorized|accessible|coverage|repair|roadside assistance|position|taxes|reservation|replacement|full|crowded|rush hour|valid|safe|carpooling|back|ready|gas|fuel|parking|passenger|space|radio|allowed|absent|opinion|nature|popular|local|convenient|enjoy|absolutely|without fail|new year's|party|resolutions|midnight|fireworks|winter sports|ice skating|city|place|history|old québec|guided|table|live music|animated|walking|foot|trip|booking|reimbursed|refunded|travel insurance|installments|family-friendly|additional costs|community|evening|exchange|lunchtime|hobbies|indian|meat|eggs|groceries|tofu|legumes|beans|lentils|vegetables|organic|cheaper|breakfast|attractions|tourist|cancellation|reasonable|job|opportunities|higher education|requirements|tuition|university|residence|clean|comfortable|chef|plates|glasses|moving|tape|heavy|fragile|digital|well-known|interest|read|publication|director|subtitles|broadcasting|screening|recorded|applicant|camera|presenter|general knowledge|condition|food|departure|return date|specific|leaving|happen|residents|enjoyment|adult|adults|children|popular|performance|company|stage|parking|your|how|much|meeting|district|outdoors|dance|special|bicycles|license|replacement|arrival time|departure time)\b)/i;
+  const additionalEnglishStarts =
+    /\s(?=(?:sheets|gardening|while|in case|in advance|air conditioning|in good|condition|insurance|lights|traditional|modern|suitable|animals|seasickness|on board|drinks|housework|grocery|in cash|punctual|reliable|home delivery|assembly|bike-share|transit|card|per week|over there|with family|helpful|lively|nervous|stressed|rental|fixed-term|permanent|how far|big enough|free of charge|at any time|opening hours|school holidays|face painting|tourist attractions|higher education|job opportunities|medical assistance|safety measures|membership fees|fixed-term contract|permanent contract|departure time|arrival time|sheets and towels|washing machine|school supplies|sporty|athletic|registration fees|transport costs|cleaning products|grocery shopping|family-friendly|homework|mealtimes|free room|health insurance|towels|neighbourhood|performance|at a distance|across|during|from|your|for|and|of|on|in|by|with|a|an|the)\b)/i;
 
-  for (const [index, line] of lines.entries()) {
-    const splitAt = line.search(englishStarts);
+  const termContinuation = /^(?:[\p{L}][\p{L}'’()-]*)(?:[\s/]+[\p{L}][\p{L}'’()-]*)?$/u;
+  const incompleteTerm = /(?:\bde|\bd'|\bà|\bet|\bles|\bla|\ble|\/|\bthe)$/i;
+  const incompleteMeaning = /(?:\bof|\bto|\bfor|\bwith|\bin|\bon|\band|\/|\ba|\ban|\bthe)$/i;
+
+  for (const [index, line] of normalizedLines.entries()) {
+    const splitCandidates = [
+      line.search(englishStarts),
+      line.search(additionalEnglishStarts),
+    ].filter((index) => index >= 0);
+    const splitAt = splitCandidates.length ? Math.min(...splitCandidates) : -1;
+    const previous = entries.at(-1);
+
+    if (splitAt === 0) {
+      if (previous) {
+        previous.meaning = [previous.meaning, line].filter(Boolean).join(" ");
+        continue;
+      }
+    }
+
+    if (/^\([^)]+\)$/.test(line) && previous) {
+      if (/^\((?:CDD|CDI)\)$/i.test(line)) {
+        previous.term = `${previous.term} ${line}`;
+      } else {
+        previous.meaning = [previous.meaning, line].filter(Boolean).join(" ");
+      }
+      continue;
+    }
+
+    if (splitAt < 0 && previous && termContinuation.test(line)) {
+      if (incompleteTerm.test(previous.term) || previous.meaning) {
+        previous.term = `${previous.term} ${line}`.trim();
+        continue;
+      }
+    }
+
     const term = splitAt > 0 ? line.slice(0, splitAt).trim() : line;
     const meaning = splitAt > 0 ? line.slice(splitAt).trim() : null;
+
+    if (previous && meaning && incompleteTerm.test(previous.term)) {
+      previous.term = `${previous.term} ${term}`.trim();
+      previous.meaning = [previous.meaning, meaning].filter(Boolean).join(" ");
+      continue;
+    }
+
+    if (previous?.meaning && incompleteMeaning.test(previous.meaning) && splitAt > 0) {
+      previous.meaning = `${previous.meaning} ${term} ${meaning}`.trim();
+      continue;
+    }
+
     entries.push({
       id: `${topic.id}-reference-vocab-${index}`,
       term,
@@ -4534,7 +4607,15 @@ export default function WorkspaceApp() {
                                     className="topic-vocab-item"
                                     key={entry.id}
                                   >
-                                    <b>{entry.term}</b>
+                                    <button
+                                      type="button"
+                                      className="topic-vocab-term"
+                                      onClick={() => speakFrench(entry.term)}
+                                      aria-label={`Hear French pronunciation of ${entry.term}`}
+                                    >
+                                      <b>{entry.term}</b>
+                                      <Volume2 size={14} aria-hidden="true" />
+                                    </button>
                                     {entry.meaning && (
                                       <span>{entry.meaning}</span>
                                     )}
