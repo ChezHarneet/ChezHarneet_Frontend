@@ -1164,9 +1164,7 @@ export default function WorkspaceApp() {
   const [query, setQuery] = useState("");
   const [speakingSearchQuery, setSpeakingSearchQuery] = useState("");
   const [selectedSpeakingTheme, setSelectedSpeakingTheme] = useState("ALL");
-  const [collapsedSpeakingThemes, setCollapsedSpeakingThemes] = useState<
-    string[]
-  >([]);
+  const [taskTwoPage, setTaskTwoPage] = useState(1);
   const [selectedPresentationTopicId, setSelectedPresentationTopicId] =
     useState("");
   const [selectedSpeakingEssayId, setSelectedSpeakingEssayId] = useState("");
@@ -1566,26 +1564,26 @@ export default function WorkspaceApp() {
         (rightOrder === -1 ? taskTwoCategoryLabels.length : rightOrder)
       );
     });
-  const speakingThemeGroups = speakingThemeOptions.flatMap((category) => {
-    if (
-      selectedSpeakingTheme !== "ALL" &&
-      selectedSpeakingTheme !== category.id
-    )
-      return [];
-    const search = speakingSearchQuery.trim().toLowerCase();
-    const matchingTopics = taskTwoCategorizedTopics
-      .filter(
-        ({ category: itemCategory, topic }) =>
-          itemCategory.id === category.id &&
-          `${topic.title} ${topic.situation ?? ""} ${itemCategory.name}`
-            .toLowerCase()
-            .includes(search),
-      )
-      .map(({ topic }) => topic);
-    return matchingTopics.length
-      ? [{ ...category, topics: matchingTopics }]
-      : [];
-  });
+  const filteredTaskTwoTopics = taskTwoCategorizedTopics.filter(
+    ({ category, topic }) => {
+      const categoryMatches =
+        selectedSpeakingTheme === "ALL" || category.id === selectedSpeakingTheme;
+      const searchText = `${topic.title} ${topic.situation ?? ""} ${category.name}`;
+      const searchMatches = searchText
+        .toLocaleLowerCase("fr")
+        .includes(speakingSearchQuery.trim().toLocaleLowerCase("fr"));
+      return categoryMatches && searchMatches;
+    },
+  );
+  const taskTwoPageSize = 12;
+  const taskTwoPageCount = Math.max(
+    1,
+    Math.ceil(filteredTaskTwoTopics.length / taskTwoPageSize),
+  );
+  const visibleTaskTwoTopics = filteredTaskTwoTopics.slice(
+    (taskTwoPage - 1) * taskTwoPageSize,
+    taskTwoPage * taskTwoPageSize,
+  );
   const selectedSpeakingTaskSpec =
     oralExpressionTasks.find(
       (task) => task.type === selectedSpeakingTaskType,
@@ -3115,6 +3113,7 @@ export default function WorkspaceApp() {
                           onClick={() => {
                             setSelectedSpeakingTaskType(task.type);
                             setSelectedSpeakingTheme("ALL");
+                            setTaskTwoPage(1);
                             setSelectedSpeakingEssayId("");
                             setSelectedSpeakingVersionId("");
                           }}
@@ -3291,184 +3290,131 @@ export default function WorkspaceApp() {
                       </section>
                     )}
                     {selectedSpeakingTaskSpec.type === "TASK2" && (
-                      <>
-                        <div className="oral-scenarios-heading">
-                          <div className="oral-scenarios-title">
-                            <div>
-                              <h2>Training topics (Task 2)</h2>
-                              <p>
-                                Practise with varied situations and build
-                                confidence.
-                              </p>
-                            </div>
-                            <span className="oral-total-count">
-                              {speakingThemeGroups.reduce(
-                                (count, group) => count + group.topics.length,
-                                0,
-                              )}{" "}
-                              topics available
-                            </span>
-                          </div>
-                          <div className="oral-filter-row">
-                            <label className="oral-search">
-                              <Search size={16} aria-hidden="true" />
-                              <input
-                                type="search"
-                                value={speakingSearchQuery}
-                                onChange={(event) =>
-                                  setSpeakingSearchQuery(event.target.value)
-                                }
-                                placeholder="Search a topic…"
-                                aria-label="Search a topic"
-                              />
-                            </label>
-                            <div
-                              className="oral-category-chips"
-                              role="group"
-                              aria-label="Filter topics by category"
+                      <section className="oral-task3-experience oral-task2-experience">
+                        <div className="oral-task3-list-toolbar oral-task2-list-toolbar">
+                          <label className="oral-task3-search">
+                            <Search size={16} aria-hidden="true" />
+                            <input
+                              type="search"
+                              value={speakingSearchQuery}
+                              onChange={(event) => {
+                                setSpeakingSearchQuery(event.target.value);
+                                setTaskTwoPage(1);
+                              }}
+                              placeholder="Search a topic…"
+                              aria-label="Search Task 2 topics"
+                            />
+                          </label>
+                          <label className="oral-task3-select">
+                            <span className="sr-only">Filter by category</span>
+                            <select
+                              value={selectedSpeakingTheme}
+                              onChange={(event) => {
+                                setSelectedSpeakingTheme(event.target.value);
+                                setTaskTwoPage(1);
+                              }}
                             >
-                              <button
-                                className={`oral-category-chip${selectedSpeakingTheme === "ALL" ? " is-active" : ""}`}
-                                type="button"
-                                aria-pressed={selectedSpeakingTheme === "ALL"}
-                                onClick={() => setSelectedSpeakingTheme("ALL")}
-                              >
-                                {language === "fr"
-                                  ? `Tous (${taskTwoSpeakingTopics.length})`
-                                  : `All (${taskTwoSpeakingTopics.length})`}
-                              </button>
+                              <option value="ALL">All categories</option>
                               {speakingThemeOptions.map((theme) => (
-                                <button
-                                  className={`oral-category-chip${selectedSpeakingTheme === theme.id ? " is-active" : ""}`}
-                                  type="button"
-                                  key={theme.id}
-                                  aria-pressed={
-                                    selectedSpeakingTheme === theme.id
-                                  }
-                                  onClick={() =>
-                                    setSelectedSpeakingTheme(theme.id)
-                                  }
-                                >
-                                  {theme.name} ({theme.count})
-                                </button>
+                                <option value={theme.id} key={theme.id}>
+                                  {theme.name}
+                                </option>
                               ))}
-                            </div>
-                          </div>
+                            </select>
+                            <ChevronDown size={15} aria-hidden="true" />
+                          </label>
+                          <span className="oral-task3-count">
+                            {filteredTaskTwoTopics.length} topics
+                          </span>
                         </div>
                         {taskTwoSpeakingTopics.length ? (
-                          speakingThemeGroups.length ? (
-                            <div className="oral-topic-groups">
-                              {speakingThemeGroups.map((group) => {
-                                const collapsed =
-                                  collapsedSpeakingThemes.includes(group.slug);
-                                const CategoryIcon = speakingThemeIcon(
-                                  group.slug,
-                                );
-                                return (
-                                  <section
-                                    className="oral-topic-group"
-                                    key={group.id}
+                          visibleTaskTwoTopics.length ? (
+                            <>
+                              <div className="oral-task3-topic-grid">
+                                {visibleTaskTwoTopics.map(
+                                  ({ topic, category }, index) => {
+                                    const CategoryIcon = speakingThemeIcon(category.slug);
+                                    const isLocked =
+                                      !sessionEmail &&
+                                      topic.id !== taskTwoSpeakingTopics[0]?.id;
+                                    return (
+                                      <button
+                                        type="button"
+                                        className={`oral-task3-topic-card${isLocked ? " guest-locked-topic" : ""}`}
+                                        key={topic.id}
+                                        onClick={() => {
+                                          if (isLocked) {
+                                            openSignIn();
+                                            return;
+                                          }
+                                          startTopic(topic);
+                                        }}
+                                      >
+                                        <span className={`oral-task3-card-icon tone-${index % 4}`}>
+                                          <CategoryIcon size={22} />
+                                        </span>
+                                        <span className="oral-task3-card-copy">
+                                          <b>{topic.title}</b>
+                                          <span>
+                                            <i>{category.name}</i>
+                                            <i>{countQuestionPrompts(topic.question)} questions</i>
+                                          </span>
+                                        </span>
+                                        {isLocked ? (
+                                          <LockKeyhole size={16} aria-label="Locked" />
+                                        ) : (
+                                          <ChevronRight size={18} />
+                                        )}
+                                      </button>
+                                    );
+                                  },
+                                )}
+                              </div>
+                              <div className="oral-task3-pagination">
+                                <span>
+                                  Showing {(taskTwoPage - 1) * taskTwoPageSize + 1}–
+                                  {Math.min(taskTwoPage * taskTwoPageSize, filteredTaskTwoTopics.length)} of {filteredTaskTwoTopics.length} topics
+                                </span>
+                                <div>
+                                  <button
+                                    type="button"
+                                    aria-label="Previous page"
+                                    disabled={taskTwoPage === 1}
+                                    onClick={() => setTaskTwoPage((current) => Math.max(1, current - 1))}
                                   >
+                                    <ArrowLeft size={16} />
+                                  </button>
+                                  {Array.from({ length: taskTwoPageCount }, (_, index) => index + 1).map((pageNumber) => (
                                     <button
-                                      className="oral-topic-group-heading"
                                       type="button"
-                                      aria-expanded={!collapsed}
-                                      onClick={() =>
-                                        setCollapsedSpeakingThemes((current) =>
-                                          current.includes(group.slug)
-                                            ? current.filter(
-                                                (slug) => slug !== group.slug,
-                                              )
-                                            : [...current, group.slug],
-                                        )
-                                      }
+                                      aria-current={taskTwoPage === pageNumber ? "page" : undefined}
+                                      className={taskTwoPage === pageNumber ? "is-current" : ""}
+                                      key={pageNumber}
+                                      onClick={() => setTaskTwoPage(pageNumber)}
                                     >
-                                      <CategoryIcon
-                                        size={18}
-                                        aria-hidden="true"
-                                      />
-                                      <b>{group.name}</b>
-                                      <span>({group.topics.length} topics)</span>
-                                      {collapsed ? (
-                                        <ChevronDown size={16} />
-                                      ) : (
-                                        <ChevronUp size={16} />
-                                      )}
+                                      {pageNumber}
                                     </button>
-                                    {!collapsed && (
-                                      <div className="oral-topic-rows">
-                                        {group.topics.map((topic) => {
-                                          const topicIndex =
-                                            taskTwoSpeakingTopics.findIndex(
-                                              (item) => item.id === topic.id,
-                                            );
-                                          const isLocked =
-                                            !sessionEmail &&
-                                            topic.id !==
-                                              taskTwoSpeakingTopics[0]?.id;
-                                          return (
-                                            <button
-                                              className={`oral-topic-row${isLocked ? " guest-locked-topic" : ""}`}
-                                              key={topic.id}
-                                              type="button"
-                                              onClick={() => startTopic(topic)}
-                                            >
-                                              <span
-                                                className={`oral-topic-number oral-number-${topicIndex % 4}`}
-                                              >
-                                                {String(
-                                                  topicIndex + 1,
-                                                ).padStart(2, "0")}
-                                              </span>
-                                              <span className="oral-topic-description">
-                                                <b>{topic.title}</b>
-                                                <small>
-                                                  {topic.situation ??
-                                                    group.name}
-                                                </small>
-                                              </span>
-                                              <span className="oral-level-pill">
-                                                {countQuestionPrompts(
-                                                  topic.question,
-                                                )}{" "}
-                                                questions
-                                              </span>
-                                              <span className="oral-topic-time">
-                                                <Clock3 size={14} /> 3–4 min
-                                              </span>
-                                              {isLocked ? (
-                                                <LockKeyhole
-                                                  size={15}
-                                                  aria-label="Locked"
-                                                />
-                                              ) : (
-                                                <ChevronRight
-                                                  size={16}
-                                                  aria-hidden="true"
-                                                />
-                                              )}
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </section>
-                                );
-                              })}
-                            </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    aria-label="Next page"
+                                    disabled={taskTwoPage === taskTwoPageCount}
+                                    onClick={() => setTaskTwoPage((current) => Math.min(taskTwoPageCount, current + 1))}
+                                  >
+                                    <ArrowRight size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </>
                           ) : (
-                            <div className="notice-box" role="status">
-                              No topics match your search.
-                            </div>
+                            <div className="notice-box" role="status">No topics match your search.</div>
                           )
                         ) : (
                           <div className="notice-box" role="status">
-                            {contentLoading
-                              ? "Loading Task 2 situations…"
-                              : "No Task 2 situations are available yet."}
+                            {contentLoading ? "Loading Task 2 situations…" : "No Task 2 situations are available yet."}
                           </div>
                         )}
-                      </>
+                      </section>
                     )}
                     {selectedSpeakingTaskSpec.type === "TASK3" && (
                       <section className="oral-learning-section oral-task3-experience">
