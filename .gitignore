@@ -22,3 +22,6 @@ npm-debug.log*
 .vscode/
 .idea/
 audit/
+
+# Next.js generated development output (may contain internal encryption material)
+.next-dev/
